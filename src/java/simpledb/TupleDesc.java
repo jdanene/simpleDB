@@ -35,16 +35,18 @@ public class TupleDesc implements Serializable {
         }
     }
 
+    private final ArrayList<TDItem> tupleDescriptor; 
+    
     /**
      * @return
      *        An iterator which iterates over all the field TDItems
      *        that are included in this TupleDesc
      * */
     public Iterator<TDItem> iterator() {
-        // some code goes here
-        return null;
-    }
+        return tupleDescriptor.iterator(); 
+    	}
 
+    
     private static final long serialVersionUID = 1L;
 
     /**
@@ -60,6 +62,10 @@ public class TupleDesc implements Serializable {
      */
     public TupleDesc(Type[] typeAr, String[] fieldAr) {
         // some code goes here
+    	this.tupleDescriptor = new ArrayList<TDItem>(); 
+    	for (int i =0; typeAr.length > i && fieldAr.length > i; ++i) {
+    		this.tupleDescriptor.add(new TDItem(typeAr[i],fieldAr[i]));
+    	}
     }
 
     /**
@@ -71,15 +77,17 @@ public class TupleDesc implements Serializable {
      *            TupleDesc. It must contain at least one entry.
      */
     public TupleDesc(Type[] typeAr) {
-        // some code goes here
+    	this.tupleDescriptor = new ArrayList<TDItem>(); 
+    	for (int i =0; typeAr.length > i; ++i) {
+    		this.tupleDescriptor.add(new TDItem(typeAr[i], ""));
+    	}
     }
 
     /**
      * @return the number of fields in this TupleDesc
      */
     public int numFields() {
-        // some code goes here
-        return 0;
+    	return this.tupleDescriptor.size(); 
     }
 
     /**
@@ -93,8 +101,12 @@ public class TupleDesc implements Serializable {
      */
     public String getFieldName(int i) throws NoSuchElementException {
         // some code goes here
-        return null;
-    }
+    	if (i< this.tupleDescriptor.size() && i>=0) {
+    		return this.tupleDescriptor.get(i).fieldName; 
+    	}else {
+    		throw new NoSuchElementException();
+    	}
+      }
 
     /**
      * Gets the type of the ith field of this TupleDesc.
@@ -107,8 +119,11 @@ public class TupleDesc implements Serializable {
      *             if i is not a valid field reference.
      */
     public Type getFieldType(int i) throws NoSuchElementException {
-        // some code goes here
-        return null;
+    	if (i < this.tupleDescriptor.size() && i>=0) {
+    		return this.tupleDescriptor.get(i).fieldType; 
+    	}else {
+    		throw new NoSuchElementException();
+    	}
     }
 
     /**
@@ -121,17 +136,25 @@ public class TupleDesc implements Serializable {
      *             if no field with a matching name is found.
      */
     public int fieldNameToIndex(String name) throws NoSuchElementException {
-        // some code goes here
-        return 0;
-    }
+        	for (int i =0; this.tupleDescriptor.size() > i; ++i) {
+        		if (this.tupleDescriptor.get(i).fieldName.equals(name)) {
+        			return i;
+        		}
+        	}
+    		throw new NoSuchElementException();
+    	}
+   
 
     /**
      * @return The size (in bytes) of tuples corresponding to this TupleDesc.
      *         Note that tuples from a given TupleDesc are of a fixed size.
      */
     public int getSize() {
-        // some code goes here
-        return 0;
+    	int size_TupleDesc = 0;
+    	for (int i =0; this.tupleDescriptor.size() > i; ++i) {
+    		size_TupleDesc+= this.tupleDescriptor.get(i).fieldType.getLen();
+    	}
+    	return size_TupleDesc; 
     }
 
     /**
@@ -145,9 +168,26 @@ public class TupleDesc implements Serializable {
      * @return the new TupleDesc
      */
     public static TupleDesc merge(TupleDesc td1, TupleDesc td2) {
-        // some code goes here
-        return null;
+    	int size_of_both = td1.numFields()+td2.numFields(); 
+    	Type[] typeAr = new Type[size_of_both];
+    	String[] fieldAr = new String[size_of_both];
+    	
+    	for (int i = 0; i< td1.numFields(); ++i ) {
+    		typeAr[i] = td1.tupleDescriptor.get(i).fieldType; 
+    		fieldAr[i] = td1.tupleDescriptor.get(i).fieldName; 
+
+    	}
+    	
+    	for (int i = td1.numFields(); i< size_of_both; ++i ) {
+    		typeAr[i] = td2.tupleDescriptor.get(i-td1.numFields()).fieldType; 
+    		fieldAr[i] = td2.tupleDescriptor.get(i-td1.numFields()).fieldName; 
+
+    	}
+    		
+
+    	return new TupleDesc(typeAr,fieldAr ); 
     }
+    
 
     /**
      * Compares the specified object with this TupleDesc for equality. Two
@@ -161,14 +201,30 @@ public class TupleDesc implements Serializable {
      */
 
     public boolean equals(Object o) {
-        // some code goes here
-        return false;
-    }
 
-    public int hashCode() {
-        // If you want to use TupleDesc as keys for HashMap, implement this so
-        // that equal objects have equals hashCode() results
-        throw new UnsupportedOperationException("unimplemented");
+    	if (o instanceof TupleDesc) {
+    		TupleDesc otherTupleDesc = (TupleDesc) o; 
+    		if (otherTupleDesc.numFields() != this.numFields()) {
+    			return false;
+    		}
+    		else {
+    			String originalName; 
+    			String otherName;
+    			for (int i = 0; i< this.numFields(); ++i ) {
+    				originalName = this.tupleDescriptor.get(i).fieldName; 
+    				otherName = otherTupleDesc.tupleDescriptor.get(i).fieldName; 
+    				if (!originalName.equals(otherName)) {
+    					return false; 
+    				}
+    				
+    			}
+    			return true; 
+    		}
+    		
+    	}else {
+    		return false; 
+    	}
+    	
     }
 
     /**
@@ -179,7 +235,45 @@ public class TupleDesc implements Serializable {
      * @return String describing this descriptor.
      */
     public String toString() {
-        // some code goes here
-        return "";
+    	String strDescribe = ""; 
+    	String end; 
+    	for (int i = 0; i< this.numFields(); ++i ) {
+    		end = ",";
+    		if (i == this.numFields() -1) {
+    			end = "";
+    		}
+    		strDescribe += this.tupleDescriptor.get(i).fieldType+"("+this.tupleDescriptor.get(i).fieldName + ")"+end; 
+    	}
+    	
+        return strDescribe;
     }
+    
+    
+    
+    public int hashCode() {
+        // If you want to use TupleDesc as keys for HashMap, implement this so
+        // that equal objects have equals hashCode() results
+    	return Integer.parseInt(toString()); 
+ 
+    }
+
+    
+    
+   
+    
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
