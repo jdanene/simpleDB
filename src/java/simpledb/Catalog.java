@@ -7,6 +7,8 @@ import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
+import simpledb.TupleDesc.TDItem;
+
 /**
  * The Catalog keeps track of all available tables in the database and their
  * associated schemas.
@@ -17,13 +19,40 @@ import java.util.concurrent.ConcurrentHashMap;
  * @Threadsafe
  */
 public class Catalog {
+	private Hashtable<Integer, TableCatalog> db_table; 
+	private Hashtable<String, Integer> name_id_Map;
 
+	private class TableCatalog{
+		public String Name = null;
+		public DbFile File =null;
+		public String PrimeKey =null;
+		
+		// get the file id: file.getId()
+		// get the file schema: file.getTupleDesc()
+		TableCatalog(String name, DbFile file, String primeKey){
+			this.File = file;
+			this.Name = name;
+			this.PrimeKey = primeKey;
+		}
+		
+		public int getId() {
+			return this.File.getId();
+		}
+		public TupleDesc getSchema() {
+			return this.File.getTupleDesc();
+		}		
+
+		
+	}
+	
+	
     /**
      * Constructor.
      * Creates a new, empty catalog.
      */
     public Catalog() {
-        // some code goes here
+       this.db_table = new Hashtable<Integer, TableCatalog>();
+       this.name_id_Map = new Hashtable<String, Integer>();
     }
 
     /**
@@ -36,7 +65,15 @@ public class Catalog {
      * @param pkeyField the name of the primary key field
      */
     public void addTable(DbFile file, String name, String pkeyField) {
-        // some code goes here
+    	if (name_id_Map.containsKey(name)) {
+    		Integer id = name_id_Map.get(name);
+    		db_table.remove(id);
+    	}
+        this.db_table.put(file.getId(), new TableCatalog(name, file, pkeyField)); 
+        this.name_id_Map.put(name, file.getId());
+    	
+
+    	
     }
 
     public void addTable(DbFile file, String name) {
@@ -58,9 +95,14 @@ public class Catalog {
      * Return the id of the table with a specified name,
      * @throws NoSuchElementException if the table doesn't exist
      */
-    public int getTableId(String name) throws NoSuchElementException {
-        // some code goes here
-        return 0;
+    public int getTableId(String name) throws NoSuchElementException {    
+    	if (name != null){
+        	if (name_id_Map.containsKey(name)) {
+            	return name_id_Map.get(name);
+            }
+    	}
+        throw new NoSuchElementException();
+  
     }
 
     /**
@@ -70,8 +112,7 @@ public class Catalog {
      * @throws NoSuchElementException if the table doesn't exist
      */
     public TupleDesc getTupleDesc(int tableid) throws NoSuchElementException {
-        // some code goes here
-        return null;
+        return this.getDatabaseFile(tableid).getTupleDesc();
     }
 
     /**
@@ -81,28 +122,38 @@ public class Catalog {
      *     function passed to addTable
      */
     public DbFile getDatabaseFile(int tableid) throws NoSuchElementException {
-        // some code goes here
-        return null;
+    	if (db_table.containsKey(tableid)) {
+        	return db_table.get(tableid).File;
+        }else {
+        	throw new NoSuchElementException();
+        }
     }
 
-    public String getPrimaryKey(int tableid) {
-        // some code goes here
-        return null;
+    public String getPrimaryKey(int tableid) throws NoSuchElementException{
+    	if (db_table.containsKey(tableid)) {
+        	return db_table.get(tableid).PrimeKey;
+        }else {
+        	throw new NoSuchElementException();
+        }
     }
 
     public Iterator<Integer> tableIdIterator() {
-        // some code goes here
-        return null;
+    	return db_table.keySet().iterator();
     }
 
-    public String getTableName(int id) {
-        // some code goes here
-        return null;
+    public String getTableName(int id) throws NoSuchElementException{
+    	if (db_table.containsKey(id)) {
+        	return db_table.get(id).Name;
+        }else {
+        	throw new NoSuchElementException();
+        }
     }
+    
     
     /** Delete all tables from the catalog */
     public void clear() {
-        // some code goes here
+        db_table.clear();
+        name_id_Map.clear();
     }
     
     /**
