@@ -1,8 +1,11 @@
 package simpledb;
 
 import java.io.*;
-
+import java.util.Hashtable;
 import java.util.concurrent.ConcurrentHashMap;
+
+
+
 
 /**
  * BufferPool manages the reading and writing of pages into memory from
@@ -31,8 +34,13 @@ public class BufferPool {
      *
      * @param numPages maximum number of pages in this buffer pool.
      */
+   
+    private Integer numPages;
+    private Hashtable<PageId, Page> Page_Table;
+    
+    
     public BufferPool(int numPages) {
-        // some code goes here
+        this.numPages = numPages;
     }
     
     public static int getPageSize() {
@@ -66,8 +74,19 @@ public class BufferPool {
      */
     public  Page getPage(TransactionId tid, PageId pid, Permissions perm)
         throws TransactionAbortedException, DbException {
-        // some code goes here
-        return null;
+        if (Page_Table.containsKey(pid)) {
+        	return Page_Table.get(pid);
+        }
+        else {
+        	if (Page_Table.size() == numPages) {
+        		throw new DbException("too many pages in buffer");        	
+        	}
+        	else {
+        		Page newPage = Database.getCatalog().getDatabaseFile(pid.getTableId()).readPage(pid);
+        		Page_Table.put(pid, newPage);
+        		return newPage;
+        	}
+        }
     }
 
     /**

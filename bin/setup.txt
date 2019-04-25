@@ -1,0 +1,2 @@
+set workspace to the `database` directory. 
+setup as usual 

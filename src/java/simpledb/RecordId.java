@@ -19,24 +19,27 @@ public class RecordId implements Serializable {
      * @param tupleno
      *            the tuple number within the page.
      */
+    
+    private PageId pid;
+    private Integer tupleNo;
+    
     public RecordId(PageId pid, int tupleno) {
-        // some code goes here
+    	this.pid = pid;
+    	this.tupleNo = tupleno;
     }
 
     /**
      * @return the tuple number this RecordId references.
      */
     public int getTupleNumber() {
-        // some code goes here
-        return 0;
+        return this.tupleNo;
     }
 
     /**
      * @return the page id this RecordId references.
      */
     public PageId getPageId() {
-        // some code goes here
-        return null;
+        return this.pid;
     }
 
     /**
@@ -47,9 +50,20 @@ public class RecordId implements Serializable {
      */
     @Override
     public boolean equals(Object o) {
-        // some code goes here
-        throw new UnsupportedOperationException("implement this");
+    	if ((o != null) && (o instanceof RecordId)){
+    		RecordId otherRecordId = (RecordId) o; 
+    		if (otherRecordId.tupleNo != this.tupleNo) {
+    			return false;
+    		}
+    		if (otherRecordId.pid.equals(this.pid)) {
+    			return true;
+    		}
+    		return false;
+    	}else {
+    		return false; 
+    	}
     }
+    
 
     /**
      * You should implement the hashCode() so that two equal RecordId instances
@@ -59,9 +73,8 @@ public class RecordId implements Serializable {
      */
     @Override
     public int hashCode() {
-        // some code goes here
-        throw new UnsupportedOperationException("implement this");
-
+    	return this.pid.hashCode() + this.tupleNo;
     }
 
 }
+

@@ -41,8 +41,6 @@ public class Catalog {
 		public TupleDesc getSchema() {
 			return this.File.getTupleDesc();
 		}		
-
-		
 	}
 	
 	
