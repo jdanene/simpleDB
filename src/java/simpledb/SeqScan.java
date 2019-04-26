@@ -37,7 +37,7 @@ public class SeqScan implements OpIterator {
         this.tid = tid;
         this.tableid = tableid;
         this.tableAlias = tableAlias;
-        this.db_iterator = Database.getCatalog().getDatabaseFile(this.tableid).iterator(this.tid);
+        this.db_iterator = null;
     }
 
     /**

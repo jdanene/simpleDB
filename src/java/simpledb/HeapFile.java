@@ -30,7 +30,7 @@ public class HeapFile implements DbFile {
     public HeapFile(File f, TupleDesc td) {
     	this.file = f;
         this.tupleDesc = td;
-        this.id = this.file.hashCode() + this.tupleDesc.hashCode();
+        this.id = this.file.getAbsoluteFile().hashCode();
     }
 
     /**
@@ -64,7 +64,10 @@ public class HeapFile implements DbFile {
         return this.tupleDesc;
     }
 
-    // see DbFile.java for javadocs
+  
+    
+    
+//     see DbFile.java for javadocs
     public Page readPage(PageId pid) {
         try {
         	RandomAccessFile raf = new RandomAccessFile(file, "r");
@@ -72,7 +75,8 @@ public class HeapFile implements DbFile {
         	int pageNum = pid.getPageNumber();
         	int offSet = pageSize * pageNum;
         	byte[] data = new byte[pageSize];
-        	raf.readFully(data, offSet, pageSize);
+        	raf.seek(offSet);
+        	raf.readFully(data);
         	raf.close();
         	HeapPageId hpid = new HeapPageId(pid.getTableId(), pid.getPageNumber());
         	return new HeapPage(hpid, data);
@@ -83,6 +87,8 @@ public class HeapFile implements DbFile {
         	return null;
         }
     }
+    
+    
 
     // see DbFile.java for javadocs
     public void writePage(Page page) throws IOException {
@@ -121,99 +127,62 @@ public class HeapFile implements DbFile {
     
     
     
-    
-    public class HeapFileIterator implements DbFileIterator{
-        
-    	private Iterator<Tuple> tuple_iterator;
-    	private Integer currPage;
-    	private HeapFile hf;
-    	private TransactionId tid;
-    	
-    	public HeapFileIterator(HeapFile hf, TransactionId tid) {
-            this.tid = tid;
-            this.hf = hf;
-            close();
+
+	public class HeapFileIterator extends AbstractDbFileIterator{
+	    
+		private Iterator<Tuple> tuple_iterator;
+		private Integer currPage;
+		private HeapFile hf;
+		private TransactionId tid;
+		
+		public HeapFileIterator(HeapFile hf, TransactionId tid) {
+	        this.tid = tid;
+	        this.hf = hf;
+	        //close();
+	    }
+		
+		
+		public void open() throws DbException, TransactionAbortedException{
+	    	currPage = -1;
+
+	    	 
+	    }
+        protected Tuple readNext() throws TransactionAbortedException, DbException {
+            if (tuple_iterator != null){
+            	if (!tuple_iterator.hasNext()) {
+            		tuple_iterator = null;
+            }
+            }
+            while (tuple_iterator == null && currPage+1 < hf.numPages() ) {
+                currPage++;     
+                tuple_iterator = ((HeapPage)Database.getBufferPool().getPage(tid,new HeapPageId(hf.getId(), currPage), Permissions.READ_ONLY)).iterator();
+                if (!tuple_iterator.hasNext())
+                    tuple_iterator = null;
+            }
+            if (tuple_iterator == null)
+                return null;
+            return tuple_iterator.next();
         }
-    	
-    	
-    	public void open() throws DbException, TransactionAbortedException{
+        /**
+         * Resets the iterator to the start.
+         * @throws DbException When rewind is unsupported.
+         */
+        public void rewind() throws DbException, TransactionAbortedException{
+        	if (tuple_iterator == null) throw new DbException("Iterator has not been opened.");
+            close();
+            open();
+        }
+
+        /**
+         * Closes the iterator.
+         */
+        public void close() {
         	currPage = -1;
         	tuple_iterator = null;
-        	 while (currPage + 1 < numPages()) {
-        		 currPage++;
-        		 tuple_iterator = ((HeapPage)Database.getBufferPool().getPage(tid, new HeapPageId(id, currPage), Permissions.READ_ONLY)).iterator();
-     			  if (!hasNext())  continue;
-     			  return;
-        	 }
-        	 
+        	super.close();
+
         }
-
-            /** @return true if there are more tuples available, false if no more tuples or iterator isn't open. */
-            public boolean hasNext() throws DbException, TransactionAbortedException{
-            	if (tuple_iterator == null) {
-            		return false;
-            	}
-            	return tuple_iterator.hasNext();
-            }
-
-            /**
-             * Gets the next tuple from the operator (typically implementing by reading
-             * from a child operator or an access method).
-             *
-             * @return The next tuple in the iterator.
-             * @throws NoSuchElementException if there are no more tuples
-             */
-            public Tuple next() throws DbException, TransactionAbortedException, NoSuchElementException{
-            	if (tuple_iterator == null) {
-            		throw new NoSuchElementException("Iterator is null");
-            	}
-            	if (hasNext()) {
-            		return tuple_iterator.next();
-            	}
-            	else {
-            		Boolean found = false;
-            		while (currPage + 1 < numPages()) {
-            			currPage++;
-            			tuple_iterator = ((HeapPage)Database.getBufferPool().getPage(tid, new HeapPageId(id, currPage), Permissions.READ_ONLY)).iterator();
-            			if (!hasNext())  continue;
-            			found = true;
-                        break;
-                        
-            		}
-            		if (found) {
-            			return tuple_iterator.next();
-            		}
-            		else {
-            			throw new NoSuchElementException("no more tuples");
-            		}
-            	}
-            }
-
-            /**
-             * Resets the iterator to the start.
-             * @throws DbException When rewind is unsupported.
-             */
-            public void rewind() throws DbException, TransactionAbortedException{
-            	if (tuple_iterator == null) throw new DbException("Iterator has not been opened.");
-                close();
-                open();
-            }
-
-            /**
-             * Closes the iterator.
-             */
-            public void close() {
-            	currPage = -1;
-            	tuple_iterator = null;
-
-            }
-    }
-    
-    
-    
-    
-    
-    
+	}
     
 }
 

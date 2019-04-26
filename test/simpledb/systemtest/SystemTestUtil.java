@@ -117,9 +117,10 @@ public class SystemTestUtil {
                 Debug.log("\t" + Utility.listToString(t));
             }
         }
-
         iterator.open();
+        int i = 0;
         while (iterator.hasNext()) {
+        	i++;
             Tuple t = iterator.next();
             ArrayList<Integer> list = tupleToList(t);
             boolean isExpected = copy.remove(list);
@@ -129,8 +130,9 @@ public class SystemTestUtil {
             }
         }
         iterator.close();
-
+        
         if (!copy.isEmpty()) {
+        	
             String msg = "expected to find the following tuples:\n";
             final int MAX_TUPLES_OUTPUT = 10;
             int count = 0;
@@ -144,6 +146,7 @@ public class SystemTestUtil {
             }
             Assert.fail(msg);
         }
+        
     }
 
     /**
