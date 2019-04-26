@@ -78,7 +78,7 @@ public class HeapPage implements Page {
      * @return the number of bytes in the header of a page in a HeapFile with each tuple occupying tupleSize bytes
      */
     private int getHeaderSize() {        
-        return (int) Math.ceil(this.getNumTuples());     
+        return (int) Math.ceil(this.getNumTuples() / 8);     
     }
     
     /** Return a view of this page before it was modified
@@ -110,8 +110,6 @@ public class HeapPage implements Page {
      * @return the PageId associated with this page.
      */
     public HeapPageId getId() {
-    	System.out.println("fuck this");
-    	System.out.println(this.pid);
     	return this.pid;
     }
 
@@ -205,7 +203,6 @@ public class HeapPage implements Page {
 
         // padding
         int zerolen = BufferPool.getPageSize() - (header.length + td.getSize() * tuples.length); //- numSlots * td.getSize();
-      
         
         byte[] zeroes = new byte[zerolen];
         try {
@@ -298,7 +295,7 @@ public class HeapPage implements Page {
     public boolean isSlotUsed(int i) {
          int header_index = i / 8;
          int offset = i % 8;
-         if ((header[header_index] >> offset) == 1) {
+         if (((header[header_index] >> offset) & 1) == 1) {
         	 return true;
          }
          return false;
@@ -320,12 +317,15 @@ public class HeapPage implements Page {
     	//some code goes here'
     	 ArrayList<Tuple> temp_tuples = new ArrayList<Tuple>();
     	 for (int i = 0; this.numSlots > i; i++) {
-    		 if (!isSlotUsed(i)) {
+    		 if (isSlotUsed(i)) {
          		temp_tuples.add(tuples[i]);
          	}
     	 }
     	 return temp_tuples.iterator();
     }
+    
+    
+  
 
 }
 

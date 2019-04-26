@@ -27,8 +27,17 @@ public class SeqScan implements OpIterator {
      *            are, but the resulting name can be null.fieldName,
      *            tableAlias.null, or null.null).
      */
+    
+    private TransactionId tid;
+    private Integer tableid;
+    private String tableAlias;
+    private DbFileIterator db_iterator;
+    
     public SeqScan(TransactionId tid, int tableid, String tableAlias) {
-        // some code goes here
+        this.tid = tid;
+        this.tableid = tableid;
+        this.tableAlias = tableAlias;
+        this.db_iterator = Database.getCatalog().getDatabaseFile(this.tableid).iterator(this.tid);
     }
 
     /**
@@ -37,7 +46,7 @@ public class SeqScan implements OpIterator {
      *       be the actual name of the table in the catalog of the database
      * */
     public String getTableName() {
-        return null;
+        return Database.getCatalog().getTableName(tableid);
     }
 
     /**
@@ -46,7 +55,7 @@ public class SeqScan implements OpIterator {
     public String getAlias()
     {
         // some code goes here
-        return null;
+        return this.tableAlias;
     }
 
     /**
@@ -62,7 +71,9 @@ public class SeqScan implements OpIterator {
      *            tableAlias.null, or null.null).
      */
     public void reset(int tableid, String tableAlias) {
-        // some code goes here
+        this.tableid = tableid;
+        this.tableAlias = tableAlias;
+        this.db_iterator = null;
     }
 
     public SeqScan(TransactionId tid, int tableId) {
@@ -70,7 +81,12 @@ public class SeqScan implements OpIterator {
     }
 
     public void open() throws DbException, TransactionAbortedException {
-        // some code goes here
+        try {
+        	this.db_iterator = Database.getCatalog().getDatabaseFile(this.tableid).iterator(this.tid);
+        	this.db_iterator.open();
+        } catch (Exception ex){
+        	throw (DbException) ex;
+        }
     }
 
     /**
@@ -84,27 +100,40 @@ public class SeqScan implements OpIterator {
      *         prefixed with the tableAlias string from the constructor.
      */
     public TupleDesc getTupleDesc() {
-        // some code goes here
-        return null;
+        TupleDesc myTD = Database.getCatalog().getTupleDesc(this.tableid);
+        Type[] typeArray = new Type[myTD.numFields()];
+        String[] fieldArray = new String[myTD.numFields()];
+        for (int i = 0; myTD.numFields() > i; i++) {
+        	typeArray[i] = myTD.getFieldType(i);
+        	fieldArray[i] = tableAlias + "." + myTD.getFieldName(i);
+        }
+        return new TupleDesc(typeArray, fieldArray);
     }
 
     public boolean hasNext() throws TransactionAbortedException, DbException {
-        // some code goes here
-        return false;
+        if (this.db_iterator == null){
+        	return false;
+        }
+        return this.db_iterator.hasNext();
     }
 
-    public Tuple next() throws NoSuchElementException,
-            TransactionAbortedException, DbException {
-        // some code goes here
-        return null;
+    public Tuple next() throws NoSuchElementException, TransactionAbortedException, DbException {
+        if (!this.hasNext()) {
+        	throw new NoSuchElementException("There is no next tuple");
+        }
+        return this.db_iterator.next();
     }
 
     public void close() {
-        // some code goes here
+        if (this.db_iterator != null) {
+        	this.db_iterator.close();
+        }
+        this.db_iterator = null;
     }
 
-    public void rewind() throws DbException, NoSuchElementException,
-            TransactionAbortedException {
-        // some code goes here
+    public void rewind() throws DbException, NoSuchElementException, TransactionAbortedException {
+//        this.close();
+//        this.open();
+    	this.db_iterator.rewind();
     }
 }

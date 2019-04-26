@@ -41,6 +41,7 @@ public class BufferPool {
     
     public BufferPool(int numPages) {
         this.numPages = numPages;
+        this.Page_Table = new Hashtable<PageId, Page>();
     }
     
     public static int getPageSize() {
@@ -74,11 +75,11 @@ public class BufferPool {
      */
     public  Page getPage(TransactionId tid, PageId pid, Permissions perm)
         throws TransactionAbortedException, DbException {
-        if (Page_Table.containsKey(pid)) {
+    	if (Page_Table.containsKey(pid)) {
         	return Page_Table.get(pid);
         }
         else {
-        	if (Page_Table.size() == numPages) {
+        	if (Page_Table.size() >= numPages) {
         		throw new DbException("too many pages in buffer");        	
         	}
         	else {

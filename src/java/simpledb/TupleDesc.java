@@ -253,7 +253,7 @@ public class TupleDesc implements Serializable {
     public int hashCode() {
         // If you want to use TupleDesc as keys for HashMap, implement this so
         // that equal objects have equals hashCode() results
-    	return Integer.parseInt(toString()); 
+    	return toString().hashCode();
  
     }
 

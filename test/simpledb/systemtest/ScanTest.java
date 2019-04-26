@@ -87,13 +87,14 @@ public class ScanTest extends SimpleDbTestBase {
         }
 
         // Create the table
+        
         final int PAGES = 30;
         ArrayList<ArrayList<Integer>> tuples = new ArrayList<ArrayList<Integer>>();
         File f = SystemTestUtil.createRandomHeapFileUnopened(1, 992*PAGES, 1000, null, tuples);
+        
         TupleDesc td = Utility.getTupleDesc(1);
         InstrumentedHeapFile table = new InstrumentedHeapFile(f, td);
         Database.getCatalog().addTable(table, SystemTestUtil.getUUID());
-
         // Scan the table once
         SystemTestUtil.matchTuples(table, tuples);
         assertEquals(PAGES, table.readCount);

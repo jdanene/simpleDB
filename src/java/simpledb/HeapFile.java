@@ -22,8 +22,15 @@ public class HeapFile implements DbFile {
      *            the file that stores the on-disk backing store for this heap
      *            file.
      */
+	
+	private File file;
+	private TupleDesc tupleDesc;
+	private Integer id;
+	
     public HeapFile(File f, TupleDesc td) {
-        // some code goes here
+    	this.file = f;
+        this.tupleDesc = td;
+        this.id = this.file.hashCode() + this.tupleDesc.hashCode();
     }
 
     /**
@@ -32,8 +39,7 @@ public class HeapFile implements DbFile {
      * @return the File backing this HeapFile on disk.
      */
     public File getFile() {
-        // some code goes here
-        return null;
+        return this.file;
     }
 
     /**
@@ -46,8 +52,7 @@ public class HeapFile implements DbFile {
      * @return an ID uniquely identifying this HeapFile.
      */
     public int getId() {
-        // some code goes here
-        throw new UnsupportedOperationException("implement this");
+        return this.id;
     }
 
     /**
@@ -56,14 +61,27 @@ public class HeapFile implements DbFile {
      * @return TupleDesc of this DbFile.
      */
     public TupleDesc getTupleDesc() {
-        // some code goes here
-        throw new UnsupportedOperationException("implement this");
+        return this.tupleDesc;
     }
 
     // see DbFile.java for javadocs
     public Page readPage(PageId pid) {
-        // some code goes here
-        return null;
+        try {
+        	RandomAccessFile raf = new RandomAccessFile(file, "r");
+        	int pageSize = BufferPool.getPageSize();
+        	int pageNum = pid.getPageNumber();
+        	int offSet = pageSize * pageNum;
+        	byte[] data = new byte[pageSize];
+        	raf.readFully(data, offSet, pageSize);
+        	raf.close();
+        	HeapPageId hpid = new HeapPageId(pid.getTableId(), pid.getPageNumber());
+        	return new HeapPage(hpid, data);
+        	
+        }
+        catch (IOException ex) {
+        	ex.printStackTrace();
+        	return null;
+        }
     }
 
     // see DbFile.java for javadocs
@@ -76,8 +94,7 @@ public class HeapFile implements DbFile {
      * Returns the number of pages in this HeapFile.
      */
     public int numPages() {
-        // some code goes here
-        return 0;
+        return (int) Math.ceil((double) file.length() / BufferPool.getPageSize());
     }
 
     // see DbFile.java for javadocs
@@ -96,11 +113,107 @@ public class HeapFile implements DbFile {
         // not necessary for lab1
     }
 
+    
     // see DbFile.java for javadocs
     public DbFileIterator iterator(TransactionId tid) {
-        // some code goes here
-        return null;
+    	return new HeapFileIterator(this, tid);
     }
+    
+    
+    
+    
+    public class HeapFileIterator implements DbFileIterator{
+        
+    	private Iterator<Tuple> tuple_iterator;
+    	private Integer currPage;
+    	private HeapFile hf;
+    	private TransactionId tid;
+    	
+    	public HeapFileIterator(HeapFile hf, TransactionId tid) {
+            this.tid = tid;
+            this.hf = hf;
+            close();
+        }
+    	
+    	
+    	public void open() throws DbException, TransactionAbortedException{
+        	currPage = -1;
+        	tuple_iterator = null;
+        	 while (currPage + 1 < numPages()) {
+        		 currPage++;
+        		 tuple_iterator = ((HeapPage)Database.getBufferPool().getPage(tid, new HeapPageId(id, currPage), Permissions.READ_ONLY)).iterator();
+     			  if (!hasNext())  continue;
+     			  return;
+        	 }
+        	 
+        }
 
+            /** @return true if there are more tuples available, false if no more tuples or iterator isn't open. */
+            public boolean hasNext() throws DbException, TransactionAbortedException{
+            	if (tuple_iterator == null) {
+            		return false;
+            	}
+            	return tuple_iterator.hasNext();
+            }
+
+            /**
+             * Gets the next tuple from the operator (typically implementing by reading
+             * from a child operator or an access method).
+             *
+             * @return The next tuple in the iterator.
+             * @throws NoSuchElementException if there are no more tuples
+             */
+            public Tuple next() throws DbException, TransactionAbortedException, NoSuchElementException{
+            	if (tuple_iterator == null) {
+            		throw new NoSuchElementException("Iterator is null");
+            	}
+            	if (hasNext()) {
+            		return tuple_iterator.next();
+            	}
+            	else {
+            		Boolean found = false;
+            		while (currPage + 1 < numPages()) {
+            			currPage++;
+            			tuple_iterator = ((HeapPage)Database.getBufferPool().getPage(tid, new HeapPageId(id, currPage), Permissions.READ_ONLY)).iterator();
+            			if (!hasNext())  continue;
+            			found = true;
+                        break;
+                        
+            		}
+            		if (found) {
+            			return tuple_iterator.next();
+            		}
+            		else {
+            			throw new NoSuchElementException("no more tuples");
+            		}
+            	}
+            }
+
+            /**
+             * Resets the iterator to the start.
+             * @throws DbException When rewind is unsupported.
+             */
+            public void rewind() throws DbException, TransactionAbortedException{
+            	if (tuple_iterator == null) throw new DbException("Iterator has not been opened.");
+                close();
+                open();
+            }
+
+            /**
+             * Closes the iterator.
+             */
+            public void close() {
+            	currPage = -1;
+            	tuple_iterator = null;
+
+            }
+    }
+    
+    
+    
+    
+    
+    
+    
 }
 

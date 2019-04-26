@@ -84,6 +84,7 @@ public class HeapFileReadTest extends SimpleDbTestBase {
 
         DbFileIterator it = smallFile.iterator(tid);
         // Not open yet
+        
         assertFalse(it.hasNext());
         try {
             it.next();
