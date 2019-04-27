@@ -30,7 +30,7 @@ public class HeapFile implements DbFile {
     public HeapFile(File f, TupleDesc td) {
     	this.file = f;
         this.tupleDesc = td;
-        this.id = this.file.getAbsoluteFile().hashCode();
+        this.id = this.file.hashCode() + this.tupleDesc.hashCode();
     }
 
     /**
@@ -76,7 +76,7 @@ public class HeapFile implements DbFile {
         	int offSet = pageSize * pageNum;
         	byte[] data = new byte[pageSize];
         	raf.seek(offSet);
-        	raf.readFully(data);
+        	raf.read(data);
         	raf.close();
         	HeapPageId hpid = new HeapPageId(pid.getTableId(), pid.getPageNumber());
         	return new HeapPage(hpid, data);
@@ -138,14 +138,12 @@ public class HeapFile implements DbFile {
 		public HeapFileIterator(HeapFile hf, TransactionId tid) {
 	        this.tid = tid;
 	        this.hf = hf;
-	        //close();
+	        close();
 	    }
 		
 		
 		public void open() throws DbException, TransactionAbortedException{
-	    	currPage = -1;
-
-	    	 
+	    	currPage = -1; 
 	    }
         protected Tuple readNext() throws TransactionAbortedException, DbException {
             if (tuple_iterator != null){
@@ -156,8 +154,12 @@ public class HeapFile implements DbFile {
             while (tuple_iterator == null && currPage+1 < hf.numPages() ) {
                 currPage++;     
                 tuple_iterator = ((HeapPage)Database.getBufferPool().getPage(tid,new HeapPageId(hf.getId(), currPage), Permissions.READ_ONLY)).iterator();
-                if (!tuple_iterator.hasNext())
-                    tuple_iterator = null;
+                if (!tuple_iterator.hasNext()) {
+                	tuple_iterator = null;
+                }
+                else {
+                	break;
+                }
             }
             if (tuple_iterator == null)
                 return null;
@@ -168,7 +170,6 @@ public class HeapFile implements DbFile {
          * @throws DbException When rewind is unsupported.
          */
         public void rewind() throws DbException, TransactionAbortedException{
-        	if (tuple_iterator == null) throw new DbException("Iterator has not been opened.");
             close();
             open();
         }
